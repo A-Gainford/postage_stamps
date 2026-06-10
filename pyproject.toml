@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Postage-Stamps"
+version = "0.1.0"
+authors = [
+  { name="Adam Gainford", email="adam.gainford@reading.ac.uk" }
+]
+description = "Postage stamp plotting routines"
+readme = "README.md"
+requires-python = ">=3.5"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+  "numpy",
+  "scitools-iris",
+  "arrow",
+]
+
+
+[project.urls]
+Homepage = "https://github.com/A-Gainford/postage_stamps"
+Issues = "https://github.com/A-Gainford/postage_stamps/issues"
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
+minversion = "7"
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "I", "UP", "SIM", "D101"]
+ignore = ["SIM102"]
