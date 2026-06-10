@@ -1,3 +1,4 @@
+import warnings
 from pathlib import Path
 from typing import Union
 
@@ -13,6 +14,8 @@ import numpy as np
 from cartopy.mpl.geoaxes import GeoAxes
 from iris.analysis.cartography import unrotate_pole
 from mpl_toolkits.axes_grid1 import AxesGrid
+
+warnings.filterwarnings("ignore", category=UserWarning, module="cartopy")
 
 
 class BasePlot:
