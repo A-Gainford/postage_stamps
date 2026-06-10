@@ -141,7 +141,60 @@ class BasePlot:
             ax = plt.axes(projection=self.get_projection(cube))
         else:
             ax = plt.axes(projection=projection)
-        cf = self.make_precip_plot(
+        cf = self.__make_precip_plot(
+            cube,
+            ax=ax,
+            show_mask=show_mask,
+            show_cbar=show_cbar,
+            cmap_type=data_type,
+        )
+
+        if show_title:
+            plt.gcf().suptitle(self.make_title(cube, title_info))
+
+        plt.tight_layout()
+        return plt.gcf(), ax, cf
+
+    def plot_wind_cube(
+        self,
+        cube: iris.cube.Cube,
+        show_mask: bool = True,
+        show_cbar: bool = True,
+        show_title: bool = True,
+        title_info: str = None,
+        data_type: str = "data",
+        projection=None,
+    ):
+        """
+        Plots the input cube as a precip map. Can also plot the mask if flagged, and can change the title
+        info based on the input. Can also change the colour scheme based on the data type
+        (e.g., just features, probabilities or actual precip values).
+
+        Args:
+            cube (iris.cube.Cube):
+                Input cube to plot
+            show_mask (bool, optional):
+                Whether to plot the mask. Defaults to True.
+            show_cbar (bool, optional):
+                Whether to plot the colorbar. Defaults to True.
+            show_title (bool, optional):
+                Whether to plot the title. Defaults to True.
+            title_info (str, optional):
+                Information to include in the title. Defaults to None.
+            data_type (str, optional):
+                The type of data to plot. Defaults to "data".
+            projection (_type_, optional):
+                The cartopy projection to use. Defaults to None, i.e., uses the cube's projection.
+
+
+        Returns:
+            tuple: (fig, ax, cf) where fig is the figure object, ax is the axis object and cf is the contourf object
+        """
+        if projection is None:
+            ax = plt.axes(projection=self.get_projection(cube))
+        else:
+            ax = plt.axes(projection=projection)
+        cf = self.__make_vector_plot(
             cube,
             ax=ax,
             show_mask=show_mask,
