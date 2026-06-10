@@ -141,7 +141,7 @@ class BasePlot:
             ax = plt.axes(projection=self.get_projection(cube))
         else:
             ax = plt.axes(projection=projection)
-        cf = self.__make_precip_plot(
+        cf = self.make_precip_plot(
             cube,
             ax=ax,
             show_mask=show_mask,
@@ -194,7 +194,7 @@ class BasePlot:
             ax = plt.axes(projection=self.get_projection(cube))
         else:
             ax = plt.axes(projection=projection)
-        cf = self.__make_vector_plot(
+        cf = self.make_vector_plot(
             cube,
             ax=ax,
             show_mask=show_mask,
@@ -208,7 +208,7 @@ class BasePlot:
         plt.tight_layout()
         return plt.gcf(), ax, cf
 
-    def __make_precip_plot(
+    def make_precip_plot(
         self,
         cube,
         ax,
@@ -231,7 +231,7 @@ class BasePlot:
                 f"plotting_func must be either iplt.contourf or iplt.pcolormesh, got {plotting_func}"
             )
 
-        if show_mask:
+        if show_mask and np.ma.is_masked(cube.data):
             mask_cube = self.__get_mask__(cube)
             cf_mask = plotting_func(
                 mask_cube,
@@ -261,7 +261,7 @@ class BasePlot:
         ax.coastlines(resolution="10m")
         return cf
 
-    def __make_vector_plot(
+    def make_vector_plot(
         self, cube, ax, show_mask=True, show_cbar=True, cmap_type="data"
     ):
         # TODO: test this code works
@@ -408,11 +408,17 @@ class BasePlot:
                 cube_cs.grid_north_pole_latitude,
             )
         else:
-            # need to account for x coord wrapping around Grenwich Meridian
-            x_coords = x_coords - 360
+            # Only wrap longitudes when coordinates are on a 0..360 domain.
+            # Subtracting 360 unconditionally can push already negative longitudes
+            # far outside the map domain and break Cartopy clipping.
+            x_coords = np.asarray(x_coords)
+            if np.nanmax(x_coords) > 180:
+                x_coords = x_coords - 360
 
-        x_bounds = [min(x_coords.flatten()), max(x_coords.flatten())]
-        y_bounds = [min(y_coords.flatten()), max(y_coords.flatten())]
+        x_flat = np.asarray(x_coords).flatten()
+        y_flat = np.asarray(y_coords).flatten()
+        x_bounds = [np.nanmin(x_flat), np.nanmax(x_flat)]
+        y_bounds = [np.nanmin(y_flat), np.nanmax(y_flat)]
 
         ax.set_xlim(x_bounds)
         ax.set_ylim(y_bounds)
@@ -432,6 +438,8 @@ class BasePlot:
         return mask_cube
 
     def __plot_mask__(self, cube):
+        if not np.ma.is_masked(cube.data):
+            return
         mask_cube = self.__get_mask__(cube)
 
         qplt.pcolormesh(mask_cube, vmin=0, vmax=20, cmap="CMRmap_r")
@@ -596,7 +604,7 @@ class GridArranger:
             cbar_mode="single",
             cbar_size="5%",
             cbar_pad=self.cbar_pad,
-            label_mode="",  # Empty value necessary
+            label_mode="1",  # Empty value necessary
         )
         return grid
 
@@ -742,14 +750,14 @@ class PostageStamps(BasePlot):
             max_axes_per_lead_dim=max_axes_per_lead_dim,
             accumulation_window=accumulation_window,
             projection=projection,
-            plotting_func="__make_precip_plot",
+            plotting_func="make_precip_plot",
         )
 
     def plot_wind(
         self,
         cube: iris.cube.Cube,
         overplot_cube: iris.cube.Cube = None,
-        show_mask: bool = True,
+        show_mask: bool = False,
         show_title: bool = True,
         title_info: str = None,
         show_member_age_offset: bool = False,
@@ -775,7 +783,7 @@ class PostageStamps(BasePlot):
             max_axes_per_lead_dim=max_axes_per_lead_dim,
             accumulation_window=accumulation_window,
             projection=projection,
-            plotting_func="__make_vector_plot",
+            plotting_func="make_vector_plot",
         )
 
     def plot(
@@ -793,7 +801,7 @@ class PostageStamps(BasePlot):
         max_axes_per_lead_dim: int = 6,
         accumulation_window: int = None,
         projection="default",
-        plotting_func="__make_precip_plot",
+        plotting_func="make_precip_plot",
     ):
         # Get the plotting func to use based on input string
         plotting_func = getattr(self, plotting_func)
