@@ -303,7 +303,14 @@ class BasePlot:
         return q
 
     def overplot_contours(
-        self, cube, ax, levels=None, colours="k", linewidths=1, linestyles="solid"
+        self,
+        cube,
+        ax,
+        levels=None,
+        colours="k",
+        linewidths=1,
+        linestyles="solid",
+        contour_labels=False,
     ):
         if levels is None:
             levels = self.get_contour_levels(cube.name())
@@ -316,6 +323,8 @@ class BasePlot:
             linestyles=linestyles,
             axes=ax,
         )
+        if contour_labels:
+            plt.clabel(contours, inline=True, fontsize=8, fmt="%1.0f")
         return contours
 
     def make_title(
@@ -388,10 +397,24 @@ class BasePlot:
             title += extra_title_info
         return title
 
-    def get_y_pos_for_title(self, grid, pad=0.05):
-        # Get the y val for the top row of axes. Can just use ax[0]
-        ax_ymax = grid[0].get_position().ymax
-        return ax_ymax + pad
+    def get_y_pos_for_title(self, grid, pad_points=8.0, min_gap_points=4.0, max_y=0.98):
+        # Use plotted/visible axes to estimate a stable top edge for the title.
+        active_axes = [ax for ax in grid if ax.get_visible() and ax.axison]
+        if len(active_axes) == 0:
+            active_axes = list(grid)
+
+        fig = active_axes[0].figure
+        fig_height_points = fig.get_figheight() * 72.0
+        pad = pad_points / fig_height_points
+        min_gap = min_gap_points / fig_height_points
+
+        top_of_axes = max(ax.get_position().ymax for ax in active_axes)
+        y_pos = top_of_axes + pad
+
+        # Keep a small gap above the plots and avoid pushing text off the figure.
+        y_pos = max(y_pos, top_of_axes + min_gap)
+        y_pos = min(y_pos, max_y)
+        return y_pos
 
     def enforce_ax_bounds_from_data(self, cube: iris.cube.Cube, ax: plt.axes) -> None:
         """
@@ -737,10 +760,10 @@ class PostageStamps(BasePlot):
 
         if arrangement in hzntl_keywords:
             self.arrangement = "horizontal"
-            self.title_pad = -0.1
+            self.title_pad_points = 8.0
         elif arrangement in vtcl_keywords:
             self.arrangement = "vertical"
-            self.title_pad = -0.05
+            self.title_pad_points = 6.0
         else:
             msg = "arrangement arg must be either 'horizontal' or 'vertical'"
             raise Exception(msg)
@@ -907,7 +930,7 @@ class PostageStamps(BasePlot):
         if show_title:
             fig.suptitle(
                 self.make_title(cube, title_info, accumulation_window),
-                y=self.get_y_pos_for_title(grid, pad=self.title_pad),
+                y=self.get_y_pos_for_title(grid, pad_points=self.title_pad_points),
                 verticalalignment="bottom",
             )
 
