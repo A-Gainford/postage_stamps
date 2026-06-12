@@ -75,7 +75,7 @@ class BasePlot:
         elif data_type == "probabilities":
             clevels = np.arange(0, 1.1, 0.1)
             # Just to catch any rounding errors. Does not show up on cbar
-            clevels[-1] = 1.001
+            clevels[-1] = 1.01
             cmap = plt.get_cmap("GnBu")(clevels)
         else:
             clevels = [0.0, 0.01, 0.25, 0.50, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]
@@ -337,6 +337,7 @@ class BasePlot:
         cycle_datetime = arrow.Arrow.fromdatetime(cycle_datetime)
 
         if "leadtime" in [coord.long_name for coord in cube.coords()]:
+            lt_in_middle_of_window = False
             lt = cube.coord("leadtime").points
             if len(lt) > 1:
                 raise ValueError(
@@ -348,17 +349,39 @@ class BasePlot:
                 lt_str = f"T+{lt - accumulation_window}-{lt}h"
             else:
                 lt_str = f"T+{lt}h"
+
+        elif "forecast_period" in [coord.var_name for coord in cube.coords()]:
+            lt_in_middle_of_window = True
+            fp_coord = cube.coord("forecast_period")
+            fp_coord.convert_units("hours")
+            fp = fp_coord.points
+            if len(fp) > 1:
+                raise ValueError(
+                    f"Expected only a single forecast_period coordinate, got: {fp_coord.points}"
+                )
+            lt = fp[0]
+
+            if accumulation_window is not None:
+                lt_str = (
+                    f"T+{lt - accumulation_window / 2}-{lt + accumulation_window / 2}h"
+                )
+            else:
+                lt_str = f"T+{lt}h"
+
         else:
             lt_str = ""
             lt = None
 
         title = f"Cycle: {cycle_datetime.format('YYYY-MM-DD HH:mm')}Z {lt_str}\n"
         if lt is not None:
-            if accumulation_window is not None:
+            if accumulation_window is not None and not lt_in_middle_of_window:
                 title += f"Valid: {cycle_datetime.shift(hours=lt - accumulation_window).format('YYYY-MM-DD HH:mm')}Z "
                 title += (
                     f"to {cycle_datetime.shift(hours=lt).format('YYYY-MM-DD HH:mm')}Z\n"
                 )
+            elif accumulation_window is not None and lt_in_middle_of_window:
+                title += f"Valid: {cycle_datetime.shift(hours=lt - accumulation_window / 2).format('YYYY-MM-DD HH:mm')}Z "
+                title += f"to {cycle_datetime.shift(hours=lt + accumulation_window / 2).format('YYYY-MM-DD HH:mm')}Z\n"
             else:
                 title += f"Valid: {cycle_datetime.shift(hours=lt).format('YYYY-MM-DD HH:mm')}Z\n"
         if extra_title_info is not None:
