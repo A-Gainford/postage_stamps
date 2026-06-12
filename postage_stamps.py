@@ -851,6 +851,7 @@ class PostageStamps(BasePlot):
         accumulation_window: int = None,
         projection="default",
         plotting_func="make_precip_plot",
+        overplot_contour_labels: bool = False,
     ):
         # Get the plotting func to use based on input string
         plotting_func = getattr(self, plotting_func)
@@ -902,7 +903,9 @@ class PostageStamps(BasePlot):
 
             if overplot_cube is not None:
                 overplot_data = overplot_cube.extract(iris.Constraint(realization=real))
-                self.overplot_contours(overplot_data, ax)
+                self.overplot_contours(
+                    overplot_data, ax, contour_labels=overplot_contour_labels
+                )
 
             # When using GridSpec without all axes filled, the bounds for each plot default
             # to global for some reason. Here, take the x and y bounds and re-enforce
