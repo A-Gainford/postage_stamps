@@ -360,7 +360,7 @@ class BasePlot:
                 lt_str = f"T+{lt}h"
 
         elif "forecast_period" in [coord.var_name for coord in cube.coords()]:
-            lt_in_middle_of_window = True
+            lt_in_middle_of_window = False
             fp_coord = cube.coord("forecast_period")
             fp_coord.convert_units("hours")
             fp = fp_coord.points
@@ -371,9 +371,7 @@ class BasePlot:
             lt = fp[0]
 
             if accumulation_window is not None:
-                lt_str = (
-                    f"T+{lt - accumulation_window / 2}-{lt + accumulation_window / 2}h"
-                )
+                lt_str = f"T+{lt - accumulation_window}-{lt}h"
             else:
                 lt_str = f"T+{lt}h"
 
